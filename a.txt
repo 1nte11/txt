@@ -1,0 +1,168 @@
+###################################
+import sqlite3
+
+shopping_cart = [["pear", 1], ["orange", 1], ["apple", 2], ["tomatoes", 2], ["yoghurt", 3]]
+
+reverse = []
+for item in shopping_cart[::-1]:
+    reverse.append(item)
+
+conn = sqlite3.connect('my.db')
+cursor = conn.cursor()
+
+
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS mytable(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item TEXT,
+    quantity INTEGER
+    )
+''')
+
+for item in reverse:
+    cursor.execute(
+        '''
+        INSERT INTO mytable (item, quantity) VALUES(?, ?)''', (item[0], item[1])
+    )
+
+conn.commit()
+conn.close()
+
+##########################################################################
+def get_order(menu):
+    order = []
+    
+    def print_menu():
+        print("Menu items:")
+        for item in menu.keys():
+            print(item)
+    
+    while True:
+        print_menu()
+        item = input("What can I get for you? ").strip().lower()
+        
+        if item not in menu:
+            print("I'm sorry, we don't serve that. Try again.")
+            continue
+        
+        while True:
+            try:
+                quantity = int(input(f"How many {item}(s) would you like? "))
+                break
+            except ValueError:
+                print("Please enter a valid quantity.")
+        
+        order.append([item, quantity])
+        
+        more = input("Anything else? yes/no: ").strip().lower()
+        if more == 'no':
+            break
+    
+    return order
+
+menu = {
+    "cola": 1.99, 
+    "fries": 2.99, 
+    "burger": 3.99, 
+    "shake": 3.5, 
+    "soda": 2.4, 
+    "chicken strips": 3.9
+}
+
+order = get_order(menu)
+print("Your order is:", order)
+########################################################################################
+import numpy as np
+
+array1 = np.random.rand(50)
+array2 = np.random.rand(50)
+
+sum_array = array1 + array2
+product_array = array1 * array2
+division_array = np.divide(array1, array2, out=np.zeros_like(array1), where=array2!=0)
+difference_array = array1 - array2
+concatenated_array = np.concatenate((array1, array2))
+
+reshaped_array = concatenated_array.reshape(5, 20)
+
+print("Array 1:", array1)
+print("Array 2:", array2)
+print("Sum of Arrays:", sum_array)
+print("Product of Arrays:", product_array)
+print("Division of Arrays:", division_array)
+print("Difference of Arrays:", difference_array)
+print("Concatenated Array:", concatenated_array)
+print("Reshaped Array (5x20):", reshaped_array)
+##############################################################################################
+import sys
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel, QTextEdit
+from pymongo import MongoClient
+
+class PriceUpdater(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+        self.client = MongoClient('mongodb://localhost:27017/')
+        self.db = self.client['product_prices']
+        self.collection = self.db['prices']
+        self.load_data()
+
+    def initUI(self):
+        self.setWindowTitle('Product Price Updater')
+        self.setGeometry(100, 100, 400, 300)
+
+        self.label = QLabel('Current Prices:', self)
+        self.text_edit = QTextEdit(self)
+        self.text_edit.setReadOnly(True)
+
+        self.btn_increase = QPushButton('Increase the price', self)
+        self.btn_increase.clicked.connect(self.increase_price)
+
+        self.btn_change = QPushButton('Change the price', self)
+        self.btn_change.clicked.connect(self.change_price)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.label)
+        layout.addWidget(self.text_edit)
+        layout.addWidget(self.btn_increase)
+        layout.addWidget(self.btn_change)
+
+        self.setLayout(layout)
+
+    def load_data(self):
+        data = self.collection.find_one()
+        if data:
+            self.products = data['products']
+        else:
+            self.products = {"soda": 5.2, "wine": 5.6, "burger": 1.99, "tea": 2.5, "milk": 2.4, "chicken": 4.1}
+            self.collection.insert_one({'products': self.products})
+
+        self.update_display()
+
+    def update_display(self):
+        self.text_edit.clear()
+        self.text_edit.append(str(self.products))
+
+    def increase_price(self):
+        for key in self.products:
+            self.products[key] += 1
+        self.collection.update_one({}, {'$set': {'products': self.products}})
+        self.update_display()
+
+    def change_price(self):
+        # Example of changing the price of 'burger' to 2.5
+        self.products['burger'] = 2.5
+        self.collection.update_one({}, {'$set': {'products': self.products}})
+        self.update_display()
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = PriceUpdater()
+    window.show()
+    sys.exit(app.exec_())
+
+
+
+
+
+
